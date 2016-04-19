@@ -1,7 +1,7 @@
 {
     "version": "0.0.1",
     "summary": "test of elm installation",
-    "repository": "local.git",
+    "repository": "https://github.com/tyehle/elm-demo.git",
     "license": "BSD3",
     "source-directories": [
         "."
