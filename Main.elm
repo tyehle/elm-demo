@@ -34,9 +34,7 @@ bounce t s =
     (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) (width/2 - size)
     (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) (height/2 - size)
   in
-    { position = (newX, newY)
-    , velocity = (newVX, newVY)
-    }
+    { position = (newX, newY), velocity = (newVX, newVY) }
 
 updatePosition : Time -> (Float, Float) -> Float -> (Float, Float)
 updatePosition t (x, v) bound =
