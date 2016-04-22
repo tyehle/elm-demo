@@ -5,36 +5,56 @@ import Time exposing (..)
 
 type alias State = { position : (Float, Float)
                    , velocity : (Float, Float)
+                   , size : Float
+                   , color : Color
                    }
 
+width : Float
 width = 800
+
+height : Float
 height = 800
-size = 20
+
 
 main : Signal Element
 main =
   let
-    start = {position = (-50,0), velocity = (0.2,-0.1)}
-    total = Signal.foldp bounce start (fps 60)
+    start = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, color = darkPurple }
+            , { position = (50,0),  velocity = (0.2,-0.4), size = 10, color = charcoal }
+            ]
+    accumulated = Signal.foldp bounce start (fps 60)
   in
-    Signal.map ball total
+    Signal.map draw accumulated
 
 
-ball : State -> Element
+ball : State -> Form
 ball s =
-  collage width height
-    [ filled charcoal (circle size)
-        |> move (fst s.position, snd s.position)
-    ]
+  filled s.color (circle s.size)
+    |> move (fst s.position, snd s.position)
 
 
-bounce : Time -> State -> State
-bounce t s =
+draw : List State -> Element
+draw states =
+  collage (round width) (round height)
+    (filled darkGrey (rect width height) :: List.map ball states)
+
+
+bounce : Time -> List State -> List State
+bounce t states =
+  let updater = updateState t in
+    List.map updater states
+
+
+updateState : Time -> State -> State
+updateState t s =
   let
-    (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) (width/2 - size)
-    (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) (height/2 - size)
+    (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) (width/2 - s.size)
+    (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) (height/2 - s.size)
   in
-    { position = (newX, newY), velocity = (newVX, newVY) }
+    { s | position = (newX, newY)
+        , velocity = (newVX, newVY)
+    }
+
 
 updatePosition : Time -> (Float, Float) -> Float -> (Float, Float)
 updatePosition t (x, v) bound =
