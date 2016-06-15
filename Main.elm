@@ -6,6 +6,7 @@ import Element exposing (Element, toHtml)
 import AnimationFrame
 import Time exposing (Time)
 import Window
+import Task
 
 
 
@@ -21,6 +22,8 @@ type alias Model = { balls: List Ball
                    , windowSize: Window.Size
                    }
 
+type Msg = Animate Time | Resize Window.Size | NoOp
+
 start : Model
 start = { balls = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, color = darkPurple }
                   , { position = (50,0),  velocity = (0.2,-0.4), size = 10, color = charcoal }
@@ -28,8 +31,11 @@ start = { balls = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, colo
         , windowSize = { width = 800, height = 800 }
         }
 
-init : (Model, Cmd msg)
-init = (start, Cmd.none)
+initialResize : Cmd Msg
+initialResize = Task.perform (\_ -> NoOp) Resize Window.size
+
+init : (Model, Cmd Msg)
+init = (start, initialResize)
 
 
 
@@ -47,6 +53,8 @@ update msg state = case msg of
     , Cmd.none
     )
 
+  NoOp -> (state, Cmd.none)
+
 moveBall : Window.Size -> Time -> Ball -> Ball
 moveBall {width, height} t s =
   let
@@ -62,7 +70,7 @@ updatePosition t (x, v) bound =
   let
     projected = x + t*v
     extra     = (abs projected) - bound
-    newV      = if extra <= 0 then v else -v
+    newV      = if extra <= 0 then v else -v -- TODO: This isn't quite right if the window changes size
     newX      = if extra <= 0 then projected else projected + 2*newV*extra
   in
     (newX, newV)
@@ -70,8 +78,6 @@ updatePosition t (x, v) bound =
 
 
 -- SUBSCRIPTIONS --
-
-type Msg = Animate Time | Resize Window.Size
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.batch [AnimationFrame.diffs Animate, Window.resizes Resize]
