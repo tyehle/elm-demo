@@ -1,104 +1,107 @@
 import Color exposing (..)
 import Html exposing (Html, text)
-import Html.App
---import Time exposing (..)
+import Html.App as App
+import Collage exposing (Form, collage, circle, move, filled, rect)
+import Element exposing (Element, toHtml)
+import AnimationFrame
+import Time exposing (Time)
+import Window
 
-type alias State = { position : (Float, Float)
+
+
+-- MODEL --
+
+type alias Ball = { position : (Float, Float)
                    , velocity : (Float, Float)
                    , size : Float
                    , color : Color
                    }
 
---width : Float
---width = 800
+type alias Model = { balls: List Ball
+                   , windowSize: Window.Size
+                   }
 
---height : Float
---height = 800
+start : Model
+start = { balls = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, color = darkPurple }
+                  , { position = (50,0),  velocity = (0.2,-0.4), size = 10, color = charcoal }
+                  ]
+        , windowSize = { width = 800, height = 800 }
+        }
 
-
-
--- MODEL
-
-type alias Model = ()
-
-
-
--- UPDATE
-
-type Msg = Reset
-
-update : Msg -> Model -> Model
-update _ = identity
+init : (Model, Cmd msg)
+init = (start, Cmd.none)
 
 
 
--- VIEW
+-- UPDATE --
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg state = case msg of
+  Animate t -> 
+    ( { state | balls = List.map (moveBall state.windowSize t) state.balls }
+    , Cmd.none
+    )
+  
+  Resize size ->
+    ( { state | windowSize = size }
+    , Cmd.none
+    )
+
+moveBall : Window.Size -> Time -> Ball -> Ball
+moveBall {width, height} t s =
+  let
+    (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) ((toFloat width)/2 - s.size)
+    (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) ((toFloat height)/2 - s.size)
+  in
+    { s | position = (newX, newY)
+        , velocity = (newVX, newVY)
+    }
+
+updatePosition : Time -> (Float, Float) -> Float -> (Float, Float)
+updatePosition t (x, v) bound =
+  let
+    projected = x + t*v
+    extra     = (abs projected) - bound
+    newV      = if extra <= 0 then v else -v
+    newX      = if extra <= 0 then projected else projected + 2*newV*extra
+  in
+    (newX, newV)
+
+
+
+-- SUBSCRIPTIONS --
+
+type Msg = Animate Time | Resize Window.Size
+
+subscriptions : Model -> Sub Msg
+subscriptions _ = Sub.batch [AnimationFrame.diffs Animate, Window.resizes Resize]
+
+
+
+-- VIEW --
 
 view : Model -> Html msg
-view _ = text "Hello World"
+view {balls, windowSize} =
+  let
+    {width, height} = windowSize
+    background = filled darkGrey (rect (toFloat width) (toFloat height))
+    combine = toHtml << collage width height
+  in
+    combine (background :: (List.map drawCircle balls))
+
+drawCircle : Ball -> Form
+drawCircle ball =
+  filled ball.color (circle ball.size)
+    |> move (fst ball.position, snd ball.position)
 
 
 
--- MAIN
+-- MAIN --
 
-main : Html msg
-main = text "hello world"
-
-
-
---draw : (Int, Int) -> Element
---draw (width, height) = 
---  let
---    background = filled charcoal (rect (toFloat width) (toFloat height))
---  in
---    collage width height [background]
-
---main : Signal Element
---main =
---  let
---    start = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, color = darkPurple }
---            , { position = (50,0),  velocity = (0.2,-0.4), size = 10, color = charcoal }
---            ]
---    accumulated = Signal.foldp bounce start (fps 60)
---  in
---    Signal.map draw accumulated
-
-
---ball : State -> Form
---ball s =
---  filled s.color (circle s.size)
---    |> move (fst s.position, snd s.position)
-
-
---draw : List State -> Element
---draw states =
---  collage (round width) (round height)
---    (filled darkGrey (rect width height) :: List.map ball states)
-
-
---bounce : Time -> List State -> List State
---bounce t states =
---  let updater = updateState t in
---    List.map updater states
-
-
---updateState : Time -> State -> State
---updateState t s =
---  let
---    (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) (width/2 - s.size)
---    (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) (height/2 - s.size)
---  in
---    { s | position = (newX, newY)
---        , velocity = (newVX, newVY)
---    }
-
-
---updatePosition : Time -> (Float, Float) -> Float -> (Float, Float)
---updatePosition t (x, v) bound =
---  let
---    projected = x + t*v
---    extra     = (abs projected) - bound
---    newV      = if extra <= 0 then v else -v
---    newX      = if extra <= 0 then projected else projected + 2*newV*extra
---  in
---    (newX, newV)
+main : Program Never
+main = App.program
+  { init = init
+  , view = view
+  , update = update
+  , subscriptions = subscriptions
+  }
