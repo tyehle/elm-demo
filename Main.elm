@@ -1,6 +1,6 @@
+import Tuple exposing (..)
 import Color exposing (..)
 import Html exposing (Html, text)
-import Html.App as App
 import Collage exposing (Form, collage, circle, move, filled, rect)
 import Element exposing (Element, toHtml)
 import AnimationFrame
@@ -32,7 +32,7 @@ start = { balls = [ { position = (-50,0), velocity = (0.2,-0.1), size = 20, colo
         }
 
 initialResize : Cmd Msg
-initialResize = Task.perform (\_ -> NoOp) Resize Window.size
+initialResize = Task.perform Resize Window.size
 
 init : (Model, Cmd Msg)
 init = (start, initialResize)
@@ -43,11 +43,11 @@ init = (start, initialResize)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg state = case msg of
-  Animate t -> 
+  Animate t ->
     ( { state | balls = List.map (moveBall state.windowSize t) state.balls }
     , Cmd.none
     )
-  
+
   Resize size ->
     ( { state | windowSize = size }
     , Cmd.none
@@ -58,8 +58,8 @@ update msg state = case msg of
 moveBall : Window.Size -> Time -> Ball -> Ball
 moveBall {width, height} t s =
   let
-    (newX, newVX) = updatePosition t (fst s.position, fst s.velocity) ((toFloat width)/2 - s.size)
-    (newY, newVY) = updatePosition t (snd s.position, snd s.velocity) ((toFloat height)/2 - s.size)
+    (newX, newVX) = updatePosition t (first s.position, first s.velocity) ((toFloat width)/2 - s.size)
+    (newY, newVY) = updatePosition t (second s.position, second s.velocity) ((toFloat height)/2 - s.size)
   in
     { s | position = (newX, newY)
         , velocity = (newVX, newVY)
@@ -98,14 +98,14 @@ view {balls, windowSize} =
 drawCircle : Ball -> Form
 drawCircle ball =
   filled ball.color (circle ball.size)
-    |> move (fst ball.position, snd ball.position)
+    |> move (first ball.position, second ball.position)
 
 
 
 -- MAIN --
 
-main : Program Never
-main = App.program
+main : Program Never Model Msg
+main = Html.program
   { init = init
   , view = view
   , update = update
